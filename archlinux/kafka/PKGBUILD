@@ -1,0 +1,102 @@
+pkgname=kafka
+_scalaver=2.12
+pkgver=2.3.0
+pkgrel=1
+pkgdesc='A high-throughput distributed messaging system'
+arch=('any')
+url='https://kafka.apache.org/'
+license=('Apache')
+depends=('java-runtime' 'zookeeper')
+backup=(etc/kafka/connect-console-sink.properties
+        etc/kafka/connect-console-source.properties
+        etc/kafka/connect-distributed.properties
+        etc/kafka/connect-file-sink.properties
+        etc/kafka/connect-file-source.properties
+        etc/kafka/connect-log4j.properties
+        etc/kafka/connect-standalone.properties
+        etc/kafka/consumer.properties
+        etc/kafka/log4j.properties
+        etc/kafka/producer.properties
+        etc/kafka/server.properties
+        etc/kafka/tools-log4j.properties)
+install=kafka.install
+source=("https://www.apache.org/dist/${pkgname}/${pkgver}/${pkgname}_2.12-${pkgver}.tgz"{,.asc}
+        zookeeper_log4j.properties
+        kafka.service
+        kafka.sysusers.d
+        kafka.tmpfiles.d)
+sha256sums=('d86f5121a9f0c44477ae6b6f235daecc3f04ecb7bf98596fd91f402336eee3e7'
+	    'SKIP'
+            '00780ee4cea3bb7a282a548f41b8964d5e392776f9d687ebea89cd49ed5742e3'
+	    'd93379c2d199a22bf79cd5889aa82bbfee46080f45f49e90a73d2281c6671bf8'
+            'dc1f3f94662339bcfb5cd4d058c06431f0e3d37e59f8c66a870e8fb02d9b5079'
+            'a2258d4a06c0fcf7f7d5367c616b0a220bbd3d35256dfb3d5f790e61ac9a98f5')
+sha512sums=('a5ed591ab304a1f16f7fd64183871e38aabf814a2c1ca86bb3d064c83e85a6463d3c55f4d707a29fc3d7994dd7ba1f790b5a6219c6dffdf472afd99cee37892e'
+	    'SKIP'
+	    '2592411e5879285f0e8811d0cfd1d93fde84d59987813d8eb55b3cbf4af76b2f703e836d0c69b2610b1260decaa6919f9d7ddaddb6f6858380a25221a21d4b09'
+	    '80599731bed5d740aea62297725aac0cf73c52a83314365dd0af6c7ed4dc378414120bb7d9278d09757b7e31a873ccc1e6674f5f72d92e0124a9b4f5db572da4'
+	    '96b46861318483151fcc9f2c79daa48c9d5d9c5a56d8bce0096363e7d0372ba884f7d7a5d0c89fa219bc6f290f5128e90b1427d31307dd6a2ab3ccb9a70f6603'
+	    'e50d9bf3426e59877942ba9dec8707c2c9e1994d88cee68978ad7eea22eb5a43dea9b3c6e94d559919aec0fcd13f6b87a2e2e90a3e6dfb7d98b14499b6bfd2ea')
+validpgpkeys=(# Colin McCabe <cmccabe@apache.org>
+	      '6B259C61F399AD22D4A4EBC0DE78987A9CD4D9D3')
+
+package() {
+  cd "${srcdir}/${pkgname}_2.12-$pkgver"
+
+  _app_home=/usr/share/${pkgname}
+
+  #-- create directory layout
+  for d in "${_app_home}/bin" /usr/bin "/usr/share/java/${pkgname}" \
+	  "/etc/zookeeper/zookeeper-${pkgname}" "/etc/${pkgname}"; do
+	  install -dm 755 "${pkgdir}/$d"
+  done
+
+  #-- config dir
+  cp -vr config/* "${pkgdir}/etc/${pkgname}/"
+
+  #-- log dir
+  sed -i "s|^log.dirs=/tmp/kafka-logs$|log.dirs=/var/log/${pkgname}|" \
+    "${pkgdir}/etc/${pkgname}/server.properties"
+
+  #-- zookeeper config
+  install -Dm 644 "${pkgdir}/etc/${pkgname}/zookeeper.properties" \
+     "${pkgdir}/etc/zookeeper/zookeeper-${pkgname}/zoo.cfg"
+  sed -i "s|^dataDir=/tmp/zookeeper$|dataDir=/var/lib/zookeeper/zookeeper-${pkgname}|" "${pkgdir}/etc/zookeeper/zookeeper-${pkgname}/zoo.cfg"
+  install -Dm 644 ${srcdir}/zookeeper_log4j.properties \
+    "${pkgdir}/etc/zookeeper/zookeeper-${pkgname}/log4j.properties"
+
+  #-- kafka config dir
+  ln -s /etc/${pkgname} "${pkgdir}/${_app_home}/config"
+
+  #-- binaries and scripts
+  for f in bin/*; do
+	  [[ ! -f "$f" || "$f" =~ ^bin/windows ]] && continue
+	  install -Dm 755 "$f" "${pkgdir}/${_app_home}/bin/"
+
+	  f="${f##*/}"
+  	  sed -i "s|\$(dirname \$0)|${_app_home}/bin|" \
+		  "${pkgdir}/${_app_home}/bin/$f"
+
+	  if [[ "$f" =~ ^zookeeper ]]; then
+		  n="${_app_home}/bin/kafka-$f"
+	  else
+		  n="${_app_home}/bin/$f"
+	  fi
+	  ln -s "$n" "${pkgdir}/usr/bin/$f"
+  done
+
+  #-- jar files
+  cp -r libs/* "${pkgdir}/usr/share/java/${pkgname}"
+  ln -s "../java/${pkgname}" "${pkgdir}/${_app_home}/libs"
+
+  #-- log directory
+  ln -s "/var/log/${pkgname}" "${pkgdir}/${_app_home}/logs"
+
+  #-- systemd stuff
+  install -Dm 644 "${srcdir}/kafka.service" \
+	  "${pkgdir}/usr/lib/systemd/system/kafka.service"
+  for f in sysusers.d tmpfiles.d; do
+        install -Dm 644 "${srcdir}/kafka.$f" \
+                "${pkgdir}/usr/lib/${f}/kafka.conf"
+  done
+}

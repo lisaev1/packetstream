@@ -1,0 +1,81 @@
+pkgname=zookeeper
+pkgver=3.5.5
+pkgrel=1
+pkgdesc='Open-source server for highly reliable distributed coordination'
+arch=('any')
+url='https://zookeeper.apache.org/'
+license=('Apache')
+depends=('java-runtime')
+backup=(etc/zookeeper/configuration.xsl
+        etc/zookeeper/log4j.properties
+        etc/zookeeper/zoo.cfg)
+install=zookeeper.install
+source=("https://apache.org/dist/${pkgname}/${pkgname}-${pkgver}/apache-${pkgname}-${pkgver}-bin.tar.gz"{,.asc}
+        zookeeper.service
+        zookeeper@.service
+        zookeeper.sysusers.d
+        zookeeper.tmpfiles.d)
+
+sha256sums=('c5ff531cbda56c157199ab80632dc50ffefa8b7cbe866a0431345d3c4d72bbd1'
+	    'SKIP'
+	    '1ef36b895ba3b2bf8836cf810135869ef679dd685ad476337e421c04a4894f11'
+	    '973e647f1c3e5ca92e096bc45fbbbbcd7afe9f9a3c19b1c41cdc1a64d879b040'
+            'e863b63650c15a8823cfb2b507c375c999a71cda24805062de36af0250de5daa'
+            '99fff5b04623889b0010c74c2dc3a4be29e7770fe2c7e15da51f7442a28c6580')
+sha512sums=('4c65e56c074393835dee87256d577ebef6bbc0fbe8271cf030a50779f7e9ba5110bc274aa4b239a431de1716ad6c8a103abac02b93c3ad2c264bbea8b1c330c1'
+	    'SKIP'
+	    '8a82bfb32b7056b9f83876d4adede39008b8cd30615c87c9439eaae698c708e61d387bfd16c5be6ccbca3ed92c79a5725974eab5be05f504c29278e3977861d2'
+    	    '584eb5e580433ca359a962342705738479ac6fa811af14aa7e8246f3876f9a5bdccbc7c3e72bc42d08ca5aa6242308f75924ff0bad1bc95726d1f3dd88ae20f6'
+    	    '6e5645110ecae8022d33be217ece68a10023b1fd3a8b52ff4f2c8844acbff2efd289b6ebf39e881af37ecc6bf30bde648b91bc774f08185d0fbde1c781340e76'
+    	    'c24e6adcc360a02db0f685812d8821d43bef514e193f8ce202c9e37caf905e0bcc300255be3d2e589b52ed8fbb16e3c33e837d2312638c366e2ec7afbd234671')
+validpgpkeys=(# Andor Molnar <andor@apache.org>
+	      '3F7A1D16FA4217B1DC75E1C9FFE35B7F15DFA1BA') 
+
+package() {
+  cd "${srcdir}/apache-${pkgname}-${pkgver}-bin"
+
+  _app_home=/usr/share/${pkgname}
+
+  #-- create directory layout
+  for d in "${_app_home}/bin" /etc /usr/bin /usr/share/java; do
+  	install -d "${pkgdir}/$d"
+  done
+
+  #-- config dir
+  cp -vr conf "${pkgdir}/etc/${pkgname}"
+  ln -s /etc/${pkgname} "${pkgdir}${_app_home}/conf"
+
+  #-- scripts
+  install -m755 bin/*.sh "${pkgdir}/${_app_home}/bin/"
+  sed -i \
+      "s|^ZOOBIN=\"\$(dirname \"\${ZOOBIN}\")\"|ZOOBIN=\"${_app_home}/bin\"|" \
+      "${pkgdir}/${_app_home}"/bin/*
+  for d in zkCleanup.sh zkCli.sh zkServer.sh; do
+    ln -s "../share/${pkgname}/bin/$d" "${pkgdir}/usr/bin/$d"
+  done
+
+  #-- jar files
+  cp -vr lib "${pkgdir}/usr/share/java/${pkgname}"
+  ln -s "../java/${pkgname}" "${pkgdir}/${_app_home}/lib"
+
+  install -m 644 "lib/${pkgname}-${pkgver}.jar" \
+    "${pkgdir}/usr/share/java/${pkgname}/${pkgname}-${pkgver}.jar"
+  ln -s "${pkgname}-${pkgver}.jar" \
+    "${pkgdir}/usr/share/java/${pkgname}/${pkgname}.jar"
+  ln -s lib/${pkgname}-${pkgver}.jar \
+    "${pkgdir}/usr/share/${pkgname}/${pkgname}-${pkgver}.jar"
+
+  #-- systemd stuff
+  for d in "zookeeper.service" "zookeeper@.service"; do
+  	install -Dm 644 "${srcdir}/$d" "${pkgdir}/usr/lib/systemd/system/$d"
+  done
+  for d in sysusers.d tmpfiles.d; do
+  	install -Dm 644 "${srcdir}/zookeeper.$d" \
+		"${pkgdir}/usr/lib/${d}/zookeeper.conf"
+  done
+
+  #-- adjust global config file
+  sed "s|^dataDir=/tmp/zookeeper$|dataDir=/var/lib/zookeeper|" \
+	  "${pkgdir}/etc/${pkgname}/zoo_sample.cfg" > \
+	  "${pkgdir}/etc/${pkgname}/zoo.cfg"
+}
