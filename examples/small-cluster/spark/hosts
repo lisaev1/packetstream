@@ -1,0 +1,7 @@
+# Static table lookup for hostnames.
+# See hosts(5) for details.
+
+127.0.0.1 localhost localhost.localdomain
+192.168.122.81 spark-node1
+192.168.122.82 spark-node2
+192.168.122.83 spark-node3

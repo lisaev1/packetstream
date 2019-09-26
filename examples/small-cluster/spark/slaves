@@ -1,0 +1,6 @@
+# A Spark Worker will be started on each of the machines listed below.
+# Don't forget to create ssh key-pair for the "apache-spark" user and
+# distribute its public part to the slaves.
+spark-node1
+spark-node2
+spark-node3

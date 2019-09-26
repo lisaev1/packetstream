@@ -1,0 +1,86 @@
+pkgname=spark
+pkgver=2.4.4
+pkgrel=1
+pkgdesc="Fast and general engine for large-scale data processing"
+arch=('any')
+url="http://spark.apache.org"
+license=('APACHE')
+depends=('java-environment=8')
+optdepends=('python: python3 support for pyspark'
+            'ipython: ipython3 support for pyspark'
+            'r: support for sparkR'
+            'rsync: support rsync hadoop binaries from master'
+            'hadoop: support for running on YARN')
+install=apache-spark.install
+source=("https://archive.apache.org/dist/${pkgname}/${pkgname}-${pkgver}/${pkgname}-${pkgver}-bin-hadoop2.7.tgz"{,.asc}
+        'spark-master.service'
+        'spark-slave.service'
+        'spark-env.sh'
+	'apache-spark.profile.d')
+sha512sums=('2e3a5c853b9f28c7d4525c0adcb0d971b73ad47d5cce138c85335b9f53a6519540d3923cb0b5cee41e386e49ae8a409a51ab7194ba11a254e037a848d0c4a9e5'
+	    'SKIP'
+	    '06b5ce531fddb561d86a2d236e62f311f2823a18ec367731ab07e3f990a201cdabc80b1f5354852d148ec2b380957004a6b20950ddb1e0bd4604c5ce0e2cfbfc'
+	    '4df11350e68abd986fc04ef3f1c52e71cb7d359d09279786b80ba469c0b451ce03b087cec0d274928061e6c2d019e986a9cfb094da1a6c0b5317f55c9e5df31d'
+	    '9f5c2f22b7650d9797125959a7e0a80352bba96a644f4defb9a92cabd620de35f667d4b9a0909fd27408014c2c2e3bf06593bb980ef47bfe2cfadf55f7fb08e4'
+    	    '8846b961014bf1d0f3f5ffc8ea81a873f377d170f5ddf3a8bc1fd04a9538f47ee1a1e727726fec0829da94d93aef78d38a383a23159b2f0e2510cf58f18ee55f')
+backup=('etc/apache-spark/spark-env.sh')
+validpgpkeys=(
+	      # Dongjoon Hyun (CODE SIGNING KEY) <dongjoon@apache.org>
+	      "F28C9C925C188C35E345614DEDA00CE834F0FC5C"
+              # Xiao Li (CODE SIGNING KEY) <lixiao@apache.org>
+	      #"0E82802048F482557FCD25F296F72F76830C0D1B"
+      	     )
+
+package() {
+	distdir="/opt/apache-spark"
+
+	#-- directory structure
+	for f in "usr/bin" "opt" "var/log/apache-spark" "etc/profile.d" \
+		"var/lib/apache-spark/work" "etc/apache-spark"; do
+		install -dm 755 "${pkgdir}/$f"
+	done
+
+	#-- copy the Spark distribution
+        cp -r "${srcdir}/${pkgname}-${pkgver}-bin-hadoop2.7" \
+		"${pkgdir}/${distdir}"
+
+	#-- wrapper scripts
+        for f in "${pkgdir}/${distdir}/bin"/*; do
+		#-- remove DOS files
+		if [[ "$f" != "${f%\.cmd}" ]];then
+			rm -vf "$f"
+			continue
+		fi
+
+		ln -s "${distdir}/bin/${f##*/}" "${pkgdir}/usr/bin/"
+
+                sed -i \
+		   "s|^ *export SPARK_HOME=.*$|export SPARK_HOME=${distdir}|" \
+		   "$f"
+                sed -i -E \
+		   's/\$\(dirname "\$0"\)/$(dirname "$(readlink -f "$0")")/g' \
+		   "$f"
+        done
+
+	#-- bash profile snippet
+	install -m644 "${srcdir}/apache-spark.profile.d" \
+		"${pkgdir}/etc/profile.d/apache-spark.sh"
+
+	#-- systemd stuff
+	for f in "spark-master" "spark-slave"; do
+		install -Dm644 "${srcdir}/${f}.service" \
+			"${pkgdir}/usr/lib/systemd/system/${f}.service"
+	done
+        
+	#-- configuration
+        install -m644 "${srcdir}/${pkgname}-${pkgver}-bin-hadoop2.7/conf"/* \
+		"${pkgdir}/etc/apache-spark"
+	install -m644 "${srcdir}/spark-env.sh" \
+		"${pkgdir}/etc/apache-spark/spark-env.sh"
+
+	#-- config and workspace symlinks
+        cd "${pkgdir}/${distdir}"
+        mv -v conf conf-templates
+        ln -s "/etc/apache-spark" conf
+        ln -s "/var/lib/apache-spark/work" ./
+}

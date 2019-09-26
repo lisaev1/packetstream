@@ -1,0 +1,19 @@
+# This unit, as written won't work because start-slave.sh expects master's
+# node as an argument. Modify the ExecStart= line and drop this unit in
+# /etc/systemd/system, for example:
+# ExecStart=/opt/apache-spark/sbin/start-slave.sh spark://spark-node1:7077
+
+[Unit]
+Description=Apache Spark slave
+After=network.target
+
+[Service]
+Type=forking
+User=apache-spark
+Group=apache-spark
+Environment=SPARK_LOG_DIR=/var/log/apache-spark
+ExecStart=/opt/apache-spark/sbin/start-slave.sh
+ExecStop=/opt/apache-spark/sbin/stop-slave.sh
+
+[Install]
+WantedBy=multi-user.target
