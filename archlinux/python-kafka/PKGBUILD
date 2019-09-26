@@ -1,0 +1,30 @@
+pkgname=python-kafka
+pkgver=1.4.6
+pkgrel=1
+pkgdesc='Python client for Apache Kafka'
+arch=('x86_64')
+url="https://github.com/dpkp/kafka-python"
+license=('Apache')
+depends=('python' 'kafka')
+makedepends=('git' 'python-setuptools')
+source=("git+https://github.com/dpkp/kafka-python")
+sha256sums=('SKIP')
+
+pkgver() {
+	cd "${srcdir}/kafka-python"
+
+	x="$(git describe --tags)"
+	echo -nE "${x//-/+}"
+}
+
+build() {
+	cd "${srcdir}/kafka-python"
+
+	python setup.py build
+}
+
+package() {
+	cd "${srcdir}/kafka-python"
+
+	python setup.py install --root="$pkgdir" --optimize=1
+}
