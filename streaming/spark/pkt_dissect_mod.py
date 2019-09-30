@@ -18,17 +18,12 @@ def _is_netbios(pkt):
     ports = (137, 138, 139)
 
     #-- first, we need only TCP (proto 0x6) or UDP (0x11) packets
-    try:
-        protocol = pkt.proto
-    except AttributeError:
-        return False
-
-    if (protocol != 0x6) and (protocol != 0x11):
-        return False
-    elif (protocol == 0x6):
+    if pkt.haslayer("TCP"):
         p = pkt["TCP"]
-    elif (protocol == 0x11):
+    elif pkt.haslayer("UDP"):
         p = pkt["UDP"]
+    else:
+        return False
 
     if ((p.sport in ports) or (p.dport in ports)):
         return True
@@ -59,20 +54,11 @@ def _is_ssh(pkt):
         True for an SSH packet (source or destination port 22); False otherwise
     """
     #-- test that we have a TCP (proto 0x6) packet...
-    try:
-        protocol = pkt.proto
-    except AttributeError:
-        return False
+    if pkt.haslayer("TCP"):
+        t = pkt["TCP"]
+        if ((t.sport == 22) or (t.dport == 22)):
+            return True
 
-    if (protocol != 0x6):
-        return False
-
-    #-- ... and if yes, test ports
-    tcp_pkt = pkt["TCP"]
-
-    if ((tcp_pkt.sport == 22) or (tcp_pkt.dport == 22)):
-        return True
-    
     return False
 
 
