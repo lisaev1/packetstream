@@ -6,6 +6,25 @@ Common subroutines for the streaming packet dissector
 #import sys, os
 import scapy.all as scapy
 
+def _is_t38(pkt):
+    """
+    Test if a packet encapsulates T38 Fax protocol.
+
+    Input:
+        pkt -- scapy packet
+    Return:
+        True for T38, False otherwise
+    """
+    #-- first, we need only UDP (0x11) packets
+    if (pkt.haslayer("UDP") and pkt.haslayer("Raw")):
+        r = pkt["Raw"].load. \
+                decode("ascii", errors = "backslashreplace").split("\r\n")
+        if any("T38" in s for s in r):
+            return True
+
+    return False
+
+
 def _is_netbios(pkt):
     """
     Test if a packet is one of NetBios types.
