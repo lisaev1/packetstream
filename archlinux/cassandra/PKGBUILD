@@ -1,0 +1,90 @@
+pkgname=cassandra
+pkgver=3.11.4
+pkgrel=1
+pkgdesc='Apache Cassandra database'
+arch=('any')
+url='http://cassandra.apache.org/'
+license=('APACHE')
+depends=('java-environment>=8')
+optdepends=('python: to use Python CLI administration scripts')
+options=(!strip)
+backup=(etc/cassandra/cassandra-env.sh
+        etc/cassandra/cassandra-rackdc.properties
+        etc/cassandra/cassandra-topology.properties
+        etc/cassandra/cassandra.yaml
+        etc/cassandra/commitlog_archiving.properties
+        etc/cassandra/logback.xml
+        etc/cassandra/logback-tools.xml)
+install=cassandra.install
+source=("https://www.apache.org/dist/${pkgname}/${pkgver}/apache-${pkgname}-${pkgver}-bin.tar.gz"{,.asc}
+        '01_fix_cassandra_home_path.patch'
+        'cassandra.service'
+        'cassandra.tmpfiles.d'
+        'cassandra.sysusers.d')
+sha256sums=('5d598e23c3ffc4db0301ec2b313061e3208fae0f9763d4b47888237dd9069987'
+            'SKIP'
+            'bbb5dcc19cac4e19c506210da901280c3063a6a241480bf12bc874e6a5c02657'
+	    '582f410c1ee219f081c85d917098a57162e7f5bedd07de01b8504f9d2601cd07'
+            '7ea0024331734b9755b6fa2ed1881f9bc608b551990b96f14e80406cb6b05eb8'
+            '7a87a4369ca2c13558fa8733f6abdcf548c63dda8a16790b5bcc20bae597ee91')
+sha512sums=('749a3511a2e3feede5ec1ff6f10cb536f4bf4d7532a53e9b1bad93f4712c215178e27e64a1998dc176f998ccfb0ea487b05601fb13f79ef825a0b013d9b24058'
+	    'SKIP'
+    	    'cfb903edf5afb6782fe027087ad87b65a1392dc5265ff00468657c43fcb9a99c89227558432818d7ab1773ff785e24960096ceb05eff9ea716d5db9cbab516a1'
+     	    '0ce4c2d07237a7d9b05fefbe0b7e3bda9bf9b143d3228876f4ffca7ebcad937609ce2be7cb9235c6418afee7200b66a2500097e20bfc4b150f162a047c3928a5'
+    	    '714e3d2659ae7929b15f875958d42883a50efbdb56a7995ae76b3e708129dc6eb4b2f0f30970cc395c27616e53060570a45e63c18245c9c1fd0b28dfa65bde83'
+    	    '86e6fb89b905bd74d650ff36173646b29bd4eb4d5f76b064a1848d4f0f3634fb747d0f3aa5bc9072dd7d935d3068709889d0891ca2fee9fc32a9ff174da1814f')
+validpgpkeys=(# Michael Shuler <michael@pbandjelly.org>, <mshuler@gmail.com>
+	      'A26E528B271F19B9E5D8E19EA278B781FE4B2BDA') 
+
+build() {
+  cd "${srcdir}/apache-cassandra-${pkgver}"
+
+  patch -p0 < "${srcdir}/01_fix_cassandra_home_path.patch"
+}
+
+package() {
+  cd "${srcdir}/apache-cassandra-${pkgver}"
+
+  #-- create directory structure
+  mkdir -p "${pkgdir}/usr/bin"
+  mkdir -p "${pkgdir}"/{etc,var/log}/cassandra
+  mkdir -p "${pkgdir}/usr/share"/{,java}/cassandra
+  mkdir "${pkgdir}/usr/share/cassandra/bin"
+
+  #-- copy stuff from tarball to proper locations
+  cp -vr -- interface pylib tools \
+	  "${pkgdir}/usr/share/cassandra/"
+
+  #-- executables
+  for f in bin/*; do
+	  [[ "$f" != "${f%\.bat}" || "$f" != "${f%\.ps1}" ]] && continue
+
+	  d="${pkgdir}/usr/share/cassandra"
+	  if [[ "$f" != "bin/cassandra.in.sh" ]]; then 
+		  m="755"
+		  d="${d}/bin/"
+		  [[ "$f" != "bin/cqlsh.py" ]] && \
+			  ln -s "/usr/share/cassandra/$f" "${pkgdir}/usr/$f"
+  	  else
+		  m="644"
+	  fi
+	  install -m "$m" "$f" "$d"
+  done
+
+  #-- jar files
+  cp -va -- lib/* "${pkgdir}/usr/share/java/cassandra/"
+  ln -s ../java/cassandra "${pkgdir}/usr/share/cassandra/lib"
+
+  #-- configuration
+  cp -a conf/* "${pkgdir}/etc/cassandra/"
+  rm -vf -- "${pkgdir}/etc/cassandra/"*.ps1
+  ln -s /etc/cassandra "${pkgdir}/usr/share/cassandra/conf"
+
+  #-- systemd stuff
+  install -Dm644 "${srcdir}/cassandra.service" \
+	  "${pkgdir}/usr/lib/systemd/system/cassandra.service"
+  for f in sysusers.d tmpfiles.d; do
+        install -Dm 644 "${srcdir}/cassandra.$f" \
+                "${pkgdir}/usr/lib/${f}/cassandra.conf"
+  done
+}

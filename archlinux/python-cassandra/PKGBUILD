@@ -1,0 +1,31 @@
+pkgname=python-cassandra
+pkgdesc="DataStax Python driver for Apache Cassandra"
+pkgver=3.17.0
+provides=('python-cassandra-driver')
+pkgrel=2
+arch=('any')
+license=('Apache')
+depends=('python' 'python-six')
+makedepends=('gcc' 'python-setuptools' 'libev')
+url="https://github.com/datastax/python-driver"
+source=("git+https://github.com/datastax/python-driver")
+md5sums=('SKIP')
+
+pkgver() {
+	cd "${srcdir}/python-driver"
+
+	x="$(git describe --tags)"
+	echo -nE "${x//-/+}"
+}
+
+build() {
+	cd "${srcdir}/python-driver"
+
+  	CASS_DRIVER_BUILD_CONCURRENCY=$(nproc) python setup.py build
+}
+
+package() {
+	cd "${srcdir}/python-driver"
+
+	python setup.py install --root="$pkgdir"
+} 
