@@ -16,3 +16,5 @@ The Kafka/Zookeeper cluster has 3 brokers (minimum number which allows a Zookeep
 Our Spark cluster also has 3 nodes and is driven by a pyspark program. It consumes packet streams from the Kafka cluster, decodes and processes them, and writes filtered results to the Cassandra database.
 
 ## Cassandra
+
+Cassandra requires `/tmp` to be mounted `exec`.

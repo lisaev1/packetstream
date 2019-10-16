@@ -2,7 +2,7 @@
 
 This directory contains buildscripts for Arch Linux packages used by PacktStream that are not available in the official repos (core, extra and community). These packages are customized versions of the corresponding AUR packages and all credits should go to their respective authors. Thanks for you work and contributions!
 
-We used the [UplinkLabs](https://www.uplinklabs.net/projects/arch-linux-on-ec2/) AMI's described in [ArchWiki](https://wiki.archlinux.org/index.php/Arch_Linux_AMIs_for_Amazon_Web_Services) and did the following customization to the launched instances:
+We used [UplinkLabs](https://www.uplinklabs.net/projects/arch-linux-on-ec2/) AMIs described in [ArchWiki](https://wiki.archlinux.org/index.php/Arch_Linux_AMIs_for_Amazon_Web_Services) and did the following customization to launched instances:
 
 1. Enable color output and comment `[multilib]` in `/etc/pacman.conf`.
 2. Enable `kernel.org` mirrors in `/etc/pacman.d/mirrorlist`.
