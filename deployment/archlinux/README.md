@@ -8,7 +8,7 @@ We used [UplinkLabs](https://www.uplinklabs.net/projects/arch-linux-on-ec2/) AMI
 2. Enable `kernel.org` mirrors in `/etc/pacman.d/mirrorlist`.
 3. Remove unneeded packages:
 ```
-pacman -Rsn xfsprogs vim vi usbutils lvm2 sudo nano s-nail reiserfsprogs logrotae man-db man-pages mdadm licenses jfsutils systemd-sysvcompat netctl dhcpcd
+pacman -Rsn xfsprogs vim vi usbutils lvm2 sudo nano s-nail reiserfsprogs logrotate man-db man-pages mdadm licenses jfsutils systemd-sysvcompat netctl dhcpcd
 
 # linux-firmware is required by linux-ec2, but is not actually used...
 # With FS#59834 implemented, no -dd should be necessary.
