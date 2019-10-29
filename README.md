@@ -3,6 +3,7 @@
 ## Table of Contents
 1. Description
 1. Directory layout
+1. Basic operation
 2. License
 
 ## Description
@@ -15,6 +16,8 @@ There are three top-level directories: `src/` for code sources, `deployment/` --
 ```
 /
 |
+|- app/				# frontend code
+|- slides/			# presentation slides
 |- src/
 |  |- streaming/		# codes that deal with processing of streaming data
 |  |- misc/			# miscellaneous utilities
@@ -28,6 +31,10 @@ There are three top-level directories: `src/` for code sources, `deployment/` --
 |- input/
 `- output/
 ```
+
+## Basic operation
+
+The network packets are sent from customers' machines into Kafka cluster, then are pulled by Spark Streaming engine for parsing, and finally pushed into the Cassandra database for storage and query. Please see `slides/slides.pdf` for a more detailed presentation.
 
 ## License
 
